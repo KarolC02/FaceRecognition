@@ -152,7 +152,7 @@ def save_checkpoint(
         
         best_path = Path(filepath).parent / f"best_model_{model_name}.pth"
         torch.save(checkpoint, best_path)
-        print(f"✓ Saved best model to {best_path}")
+        print(f"Saved best model to {best_path}")
 
 
 def load_checkpoint(

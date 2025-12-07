@@ -259,5 +259,5 @@ if __name__ == "__main__":
     print(f"First balanced batch indices: {batch_balanced}")
     print(f"Batch size: {len(batch_balanced)} (should be 4*3=12)")
     
-    print("\n✓ Triplet sampler tests passed!")
+    print("\nTriplet sampler tests passed!")
 

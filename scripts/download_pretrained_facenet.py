@@ -14,13 +14,13 @@ def download_pretrained_facenet():
     """Download pretrained FaceNet model and save it."""
     try:
         from facenet_pytorch import InceptionResnetV1
-        print("✓ facenet-pytorch library found")
+        print("facenet-pytorch library found")
     except ImportError:
         print("Installing facenet-pytorch...")
         import subprocess
         subprocess.check_call([sys.executable, "-m", "pip", "install", "facenet-pytorch"])
         from facenet_pytorch import InceptionResnetV1
-        print("✓ facenet-pytorch installed")
+        print("facenet-pytorch installed")
     
     # Create models directory
     model_dir = Path(project_root) / "data" / "models"
@@ -54,7 +54,7 @@ def download_pretrained_facenet():
     output_path = model_dir / "best_model_facenet_pretrained.pth"
     torch.save(checkpoint, output_path)
     
-    print(f"\n✓ Pretrained FaceNet model saved to: {output_path}")
+    print(f"\nPretrained FaceNet model saved to: {output_path}")
     print(f"  Model: InceptionResnetV1")
     print(f"  Pretrained on: VGGFace2")
     print(f"  Embedding size: 512")

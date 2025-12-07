@@ -84,6 +84,11 @@ class TrainingConfig:
         assert self.distance_metric in ["euclidean", "cosine"], \
             f"Unknown distance metric: {self.distance_metric}"
         
+        # Use lower learning rate for fine-tuning pretrained models
+        if self.pretrained_path and self.learning_rate == 0.001:
+            self.learning_rate = 0.0001
+            print(f"Using lower learning rate {self.learning_rate} for fine-tuning")
+        
         # Create directories
         Path(self.save_dir).mkdir(parents=True, exist_ok=True)
         Path(self.log_dir).mkdir(parents=True, exist_ok=True)

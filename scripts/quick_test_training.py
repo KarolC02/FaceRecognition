@@ -78,17 +78,17 @@ def main():
     # Test training epoch
     print("\n4. Testing training epoch...")
     train_metrics = train_epoch(model, train_loader, loss_fn, optimizer, device, 0, logger, config)
-    print(f"   ✓ Training loss: {train_metrics['loss']:.4f}")
+    print(f"   Training loss: {train_metrics['loss']:.4f}")
     
     # Test validation
     print("\n5. Testing validation...")
     val_metrics = validate(model, val_loader, loss_fn, device, 0, logger)
-    print(f"   ✓ Validation loss: {val_metrics['loss']:.4f}")
+    print(f"   Validation loss: {val_metrics['loss']:.4f}")
     
     logger.close()
     
     print("\n" + "=" * 60)
-    print("✓ Training pipeline test passed!")
+    print("Training pipeline test passed!")
     print("=" * 60)
     print("\nYou can now run full training with:")
     print("  python training/train.py")

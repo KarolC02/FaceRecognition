@@ -27,7 +27,7 @@ def analyze_lfw_structure(dataset_path):
     person_folders = [d for d in dataset_path.iterdir() if d.is_dir()]
     
     if person_folders:
-        print(f"\n✓ Dataset is organized by person folders")
+        print(f"\nDataset is organized by person folders")
         print(f"  Number of people: {len(person_folders)}")
         
         # Count images per person
@@ -104,7 +104,7 @@ def analyze_lfw_structure(dataset_path):
                       if f.suffix.lower() in {'.jpg', '.jpeg', '.png', '.bmp'}]
         
         if image_files:
-            print(f"\n✓ Dataset is a flat structure")
+            print(f"\nDataset is a flat structure")
             print(f"  Total images: {len(image_files)}")
             print(f"  Note: Flat structure - may need to parse filenames for person labels")
             return {
@@ -112,7 +112,7 @@ def analyze_lfw_structure(dataset_path):
                 'structure': 'flat'
             }
         else:
-            print(f"\n✗ Could not determine dataset structure")
+            print(f"\nCould not determine dataset structure")
             print(f"  Path exists but no person folders or images found")
             return None
 
@@ -158,7 +158,7 @@ def visualize_sample_images(dataset_path, num_samples=9):
     plt.tight_layout()
     output_path = Path("data") / "lfw_samples.png"
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
-    print(f"\n✓ Sample images saved to: {output_path}")
+    print(f"\nSample images saved to: {output_path}")
     plt.close()
 
 
@@ -167,11 +167,11 @@ def check_pairs_file(pairs_path):
     pairs_path = Path(pairs_path)
     
     if not pairs_path.exists():
-        print(f"\n⚠ pairs.txt not found at {pairs_path}")
+        print(f"\nWarning: pairs.txt not found at {pairs_path}")
         print("  This file is used for LFW evaluation protocol")
         return
     
-    print(f"\n✓ Found pairs.txt")
+    print(f"\nFound pairs.txt")
     with open(pairs_path, 'r') as f:
         lines = f.readlines()
     

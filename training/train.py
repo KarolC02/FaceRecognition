@@ -179,9 +179,9 @@ def main():
     parser.add_argument(
         '--model',
         type=str,
-        default='facenet',
+        default=None,
         choices=['resnet18', 'facenet'],
-        help='Model architecture: resnet18 or facenet (default: facenet)'
+        help='Model architecture: resnet18 or facenet (overrides config if provided)'
     )
     parser.add_argument(
         '--embedding-size',
@@ -195,6 +195,12 @@ def main():
         default=None,
         help='Path to pretrained weights (optional)'
     )
+    parser.add_argument(
+        '--num-epochs',
+        type=int,
+        default=None,
+        help='Number of epochs to train (overrides config)'
+    )
     args = parser.parse_args()
     
     # Load or create config
@@ -203,8 +209,9 @@ def main():
     else:
         config = TrainingConfig()
     
-    # Update config based on args
-    config.model_name = args.model
+    # Update config based on args (only if explicitly provided)
+    if args.model:
+        config.model_name = args.model
     
     # Set embedding size based on model if not specified
     if args.embedding_size:
@@ -217,6 +224,10 @@ def main():
     if args.pretrained_path:
         config.pretrained_path = args.pretrained_path
         config.pretrained = True
+    
+    if args.num_epochs:
+        config.num_epochs = args.num_epochs
+        print(f"Training for {config.num_epochs} epochs (overridden from command line)")
     
     print(f"Training with model: {config.model_name}")
     print(f"Embedding size: {config.embedding_size}")
@@ -370,6 +381,8 @@ def main():
     # Resume from checkpoint if specified
     start_epoch = 0
     best_val_loss = float('inf')
+    best_epoch = 0
+    best_model_state = None
     if args.resume or config.resume_from:
         checkpoint_path = args.resume or config.resume_from
         print(f"Resuming from checkpoint: {checkpoint_path}")
@@ -420,38 +433,44 @@ def main():
                 else:
                     scheduler.step()
             
-            # Check if best model
+            # Track best model (but don't save yet)
             is_best = val_metrics['loss'] < best_val_loss
             if is_best:
                 best_val_loss = val_metrics['loss']
-            
-            # Save checkpoint
-            if epoch % config.checkpoint_freq == 0 or is_best:
-                checkpoint_path = Path(config.save_dir) / f"checkpoint_epoch_{epoch}.pth"
-                save_checkpoint(
-                    model, optimizer, epoch, val_metrics['loss'],
-                    val_metrics, config, str(checkpoint_path), is_best
-                )
+                best_epoch = epoch
+                # Save best model state for final checkpoint (copy to CPU to save memory)
+                best_model_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+                print(f"  New best validation loss: {best_val_loss:.4f} (epoch {epoch})")
             
             # Early stopping
             if early_stopping(val_metrics['loss']):
                 print(f"\nEarly stopping at epoch {epoch}")
-                print(f"Best validation loss: {best_val_loss:.4f}")
+                print(f"Best validation loss: {best_val_loss:.4f} (epoch {best_epoch})")
                 break
         
         print()
     
-    # Save final checkpoint
-    if final_epoch >= start_epoch:
-        final_checkpoint_path = Path(config.save_dir) / "checkpoint_final.pth"
-        # Use best validation loss as final loss metric
-        final_loss = best_val_loss
-        final_metrics = {'loss': final_loss, 'note': 'Final checkpoint after training completion'}
+    # Save final checkpoint (best model)
+    if final_epoch >= start_epoch and best_model_state is not None:
+        # Load best model state back to device
+        best_model_state_device = {k: v.to(device) for k, v in best_model_state.items()}
+        model.load_state_dict(best_model_state_device)
+        
+        # Determine checkpoint name based on whether we're fine-tuning
+        if config.pretrained and config.pretrained_path:
+            checkpoint_name = f"checkpoint_{config.model_name}_finetuned_final.pth"
+            note = 'Final checkpoint - fine-tuned from pretrained'
+        else:
+            checkpoint_name = f"checkpoint_{config.model_name}_final.pth"
+            note = 'Final checkpoint - trained from scratch'
+        
+        final_checkpoint_path = Path(config.save_dir) / checkpoint_name
+        final_metrics = {'loss': best_val_loss, 'epoch': best_epoch, 'note': note}
         save_checkpoint(
-            model, optimizer, final_epoch, final_loss,
+            model, optimizer, best_epoch, best_val_loss,
             final_metrics, config, str(final_checkpoint_path), is_best=False
         )
-        print(f"✓ Saved final checkpoint to {final_checkpoint_path}")
+        print(f"Saved final checkpoint (best model from epoch {best_epoch}) to {final_checkpoint_path}")
     
     # Save final metrics
     logger.save_metrics()
@@ -459,9 +478,12 @@ def main():
     
     print("=" * 60)
     print("Training complete!")
-    print(f"Best validation loss: {best_val_loss:.4f}")
-    print(f"Best model saved at: {Path(config.save_dir) / f'best_model_{config.model_name}.pth'}")
-    print(f"Final checkpoint saved at: {Path(config.save_dir) / 'checkpoint_final.pth'}")
+    print(f"Best validation loss: {best_val_loss:.4f} (epoch {best_epoch})")
+    if final_epoch >= start_epoch and best_model_state is not None:
+        if config.pretrained and config.pretrained_path:
+            print(f"Final checkpoint saved at: {Path(config.save_dir) / f'checkpoint_{config.model_name}_finetuned_final.pth'}")
+        else:
+            print(f"Final checkpoint saved at: {Path(config.save_dir) / f'checkpoint_{config.model_name}_final.pth'}")
 
 
 if __name__ == "__main__":

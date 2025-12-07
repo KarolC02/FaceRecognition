@@ -119,11 +119,11 @@ def test_triplet_sampler():
     
     # Check that anchors == positives
     matches = (anchors == positives).all()
-    print(f"   ✓ Anchors == Positives: {matches.item()}")
+    print(f"   Anchors == Positives: {matches.item()}")
     
     # Check that negatives are different
     different = (anchors != negatives).all()
-    print(f"   ✓ Negatives are different: {different.item()}")
+    print(f"   Negatives are different: {different.item()}")
     
     return True
 
@@ -197,7 +197,7 @@ def test_end_to_end():
     print(f"   d(anchor, negative): {metrics['d_an_mean']:.4f}")
     print(f"   Margin violations: {metrics['margin_violations']:.2%}")
     
-    print("\n✓ End-to-end test passed!")
+    print("\nEnd-to-end test passed!")
     
     return True
 
@@ -214,11 +214,11 @@ if __name__ == "__main__":
         test_end_to_end()
         
         print("\n" + "=" * 60)
-        print("✓ All tests passed!")
+        print("All tests passed!")
         print("=" * 60)
         
     except Exception as e:
-        print(f"\n✗ Error during testing: {e}")
+        print(f"\nError during testing: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

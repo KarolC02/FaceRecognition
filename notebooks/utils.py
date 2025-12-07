@@ -127,11 +127,11 @@ def visualize_face_detection(image, faces):
     plt.show()
     
     if len(faces) > 0:
-        print(f"✓ Found {len(faces)} face(s)!")
+        print(f"Found {len(faces)} face(s)!")
         for i, face in enumerate(faces, 1):
             print(f"  Face {i}: Confidence {face['confidence']:.2%}, Box: {face['box']}")
     else:
-        print("✗ No faces detected!")
+        print("No faces detected!")
 
 
 def visualize_preprocessing(image_path):
@@ -226,10 +226,10 @@ def visualize_comparison(reference_path, test_path, embedding1, embedding2, dist
     axes[0, 0].axis('off')
     
     if is_match:
-        title = f'Test Image\n✓ MATCH! (Same Person)'
+        title = f'Test Image\nMATCH! (Same Person)'
         color = 'green'
     else:
-        title = f'Test Image\n✗ NO MATCH (Different Person)'
+        title = f'Test Image\nNO MATCH (Different Person)'
         color = 'red'
     axes[0, 1].imshow(img2)
     axes[0, 1].set_title(title, fontsize=14, fontweight='bold', color=color)
@@ -270,7 +270,7 @@ def visualize_comparison(reference_path, test_path, embedding1, embedding2, dist
     print()
     
     if is_match:
-        print(f"✓ MATCH! Same person detected.")
+        print(f"MATCH! Same person detected.")
     else:
-        print(f"✗ NO MATCH. Different person or too different.")
+        print(f"NO MATCH. Different person or too different.")
 

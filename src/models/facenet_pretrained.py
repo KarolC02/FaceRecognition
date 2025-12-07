@@ -289,7 +289,7 @@ class FaceNetPretrained(nn.Module):
         if pretrained and pretrained_path:
             self.load_pretrained(pretrained_path)
         elif pretrained:
-            print("⚠ Warning: pretrained=True but no pretrained_path provided")
+            print("Warning: pretrained=True but no pretrained_path provided")
             print("  Training from scratch...")
     
     def load_pretrained(self, pretrained_path: str):
@@ -320,9 +320,9 @@ class FaceNetPretrained(nn.Module):
                         backbone_dict[key] = v
             
             self.backbone.load_state_dict(backbone_dict, strict=False)
-            print(f"✓ Loaded pretrained weights from {pretrained_path}")
+            print(f"Loaded pretrained weights from {pretrained_path}")
         except Exception as e:
-            print(f"⚠ Could not load pretrained weights: {e}")
+            print(f"Warning: Could not load pretrained weights: {e}")
             print("  Training from scratch...")
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:

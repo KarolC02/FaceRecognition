@@ -63,7 +63,7 @@ class FaceRecognizer:
         self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
         self.model.eval()
         
-        print(f"✓ Loaded model from {model_path}")
+        print(f"Loaded model from {model_path}")
         print(f"  Model type: {model_name}")
         print(f"  Embedding size: {embedding_size}")
         if checkpoint.get('epoch') is not None:
@@ -121,7 +121,7 @@ class FaceRecognizer:
         print(f"Adding {name} to database...")
         embedding = self.get_embedding(image_path)
         self.known_faces[name] = embedding
-        print(f"✓ Added {name}")
+        print(f"Added {name}")
     
     def recognize_face(self, image_path: str, threshold: float = 0.6) -> tuple:
         """
@@ -199,7 +199,7 @@ class FaceRecognizer:
         
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches='tight')
-            print(f"✓ Saved visualization to {save_path}")
+            print(f"Saved visualization to {save_path}")
         else:
             plt.show()
         
@@ -304,11 +304,11 @@ def main():
     print(f"Confidence: {confidence:.2%}")
     
     if name:
-        print(f"\n✓ RECOGNIZED as: {name}")
+        print(f"\nRECOGNIZED as: {name}")
         print(f"  Distance: {distance:.4f} (below threshold {args.threshold})")
         print(f"  Confidence: {confidence:.2%}")
     else:
-        print(f"\n✗ NOT RECOGNIZED (Unknown face)")
+        print(f"\nNOT RECOGNIZED (Unknown face)")
         print(f"  Distance: {distance:.4f} (above threshold {args.threshold})")
         print(f"  Try lowering threshold (current: {args.threshold})")
     
@@ -326,10 +326,10 @@ def main():
     test_img = Image.open(args.test).convert('RGB')
     axes[1].imshow(test_img)
     if name:
-        title = f'Test Image\n✓ RECOGNIZED as {name}\nDistance: {distance:.4f}, Confidence: {confidence:.2%}'
+        title = f'Test Image\nRECOGNIZED as {name}\nDistance: {distance:.4f}, Confidence: {confidence:.2%}'
         color = 'green'
     else:
-        title = f'Test Image\n✗ NOT RECOGNIZED\nDistance: {distance:.4f} (threshold: {args.threshold})'
+        title = f'Test Image\nNOT RECOGNIZED\nDistance: {distance:.4f} (threshold: {args.threshold})'
         color = 'red'
     axes[1].set_title(title, fontsize=14, fontweight='bold', color=color)
     axes[1].axis('off')
@@ -337,7 +337,7 @@ def main():
     plt.tight_layout()
     output_path = 'recognition_result.png'
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
-    print(f"✓ Saved result visualization to {output_path}")
+    print(f"Saved result visualization to {output_path}")
     plt.close()
     
     print("\n" + "=" * 60)

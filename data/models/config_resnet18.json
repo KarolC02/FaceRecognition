@@ -3,9 +3,9 @@
   "train_split": "train",
   "val_split": "val",
   "test_split": "test",
-  "model_name": "facenet",
-  "embedding_size": 512,
-  "pretrained": false,
+  "model_name": "resnet18",
+  "embedding_size": 128,
+  "pretrained": true,
   "pretrained_path": null,
   "batch_size": 32,
   "num_epochs": 50,
@@ -35,7 +35,7 @@
   "use_tensorboard": true,
   "log_freq": 10,
   "val_freq": 1,
-  "early_stopping_patience": 10,
+  "early_stopping_patience": 15,
   "early_stopping_min_delta": 0.001,
   "seed": 42
 }

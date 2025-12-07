@@ -1,0 +1,438 @@
+\documentclass[12pt,a4paper]{article}
+
+% Pakiety dla języka polskiego
+\usepackage[polish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% Pakiety graficzne i tabelaryczne
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{float}
+\usepackage{subcaption}
+
+% Matematyka
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+% Formatowanie
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{setspace}
+\onehalfspacing
+
+% Linki
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% Bibliografia
+\usepackage{cite}
+
+\title{\textbf{Porównanie modeli rozpoznawania twarzy\\z wykorzystaniem triplet loss}}
+\author{Projekt uniwersytecki}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+W niniejszym raporcie przedstawiono porównanie trzech podejść do rozpoznawania twarzy: sieci ResNet18 trenowanej od podstaw, architektury FaceNet (Inception-ResNet-v1) trenowanej od podstaw oraz tej samej architektury z wykorzystaniem wag pretrenowanych na zbiorze VGGFace2. Eksperymenty przeprowadzono na zbiorze LFW (Labeled Faces in the Wild) z użyciem triplet loss. Wyniki pokazują znaczącą przewagę transfer learningu --- pretrenowany FaceNet osiągnął dokładność 91.3\% w porównaniu do 79.6\% dla ResNet18 i zaledwie 47.2\% dla FaceNet trenowanego od zera.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%==============================================================================
+\section{Wprowadzenie}
+%==============================================================================
+
+Rozpoznawanie twarzy to jedno z kluczowych zagadnień w dziedzinie wizji komputerowej. Nowoczesne podejścia opierają się na uczeniu reprezentacji (embedding learning), gdzie sieć neuronowa mapuje obraz twarzy na wektor w przestrzeni metrycznej. Celem jest takie nauczenie sieci, aby twarze tej samej osoby były blisko siebie, a twarze różnych osób --- daleko od siebie.
+
+\subsection{Cel projektu}
+
+Celem projektu było porównanie trzech różnych podejść do trenowania modeli rozpoznawania twarzy:
+
+\begin{enumerate}
+    \item \textbf{ResNet18 od podstaw} --- lżejsza architektura z backbone'em pretrenowanym na ImageNet
+    \item \textbf{FaceNet od podstaw} --- głęboka architektura Inception-ResNet-v1 bez pretrainingu
+    \item \textbf{FaceNet z pretrainingiem} --- ta sama architektura z wagami pretrenowanymi na VGGFace2
+\end{enumerate}
+
+\subsection{Triplet Loss}
+
+Wszystkie modele trenowano z wykorzystaniem funkcji straty triplet loss, zdefiniowanej jako:
+
+\begin{equation}
+\mathcal{L} = \max(0, d(a, p) - d(a, n) + \alpha)
+\end{equation}
+
+gdzie:
+\begin{itemize}
+    \item $a$ --- embedding kotwicy (anchor)
+    \item $p$ --- embedding pozytywnego przykładu (ta sama osoba co kotwica)
+    \item $n$ --- embedding negatywnego przykładu (inna osoba)
+    \item $d(\cdot, \cdot)$ --- metryka odległości (w naszym przypadku odległość euklidesowa)
+    \item $\alpha$ --- margines (margin), ustalony na 0.2
+\end{itemize}
+
+Intuicja jest prosta: chcemy, żeby odległość między kotwicą a pozytywnym przykładem była mniejsza niż odległość między kotwicą a negatywnym przykładem, z pewnym marginesem bezpieczeństwa.
+
+%==============================================================================
+\section{Zbiór danych}
+%==============================================================================
+
+\subsection{LFW (Labeled Faces in the Wild)}
+
+Do eksperymentów wykorzystano przefiltrowany zbiór LFW, który jest standardowym benchmarkiem w dziedzinie rozpoznawania twarzy. Zbiór zawiera zdjęcia twarzy celebrytów zebranych z internetu w warunkach ``in the wild'' --- z różnym oświetleniem, pozami i wyrazem twarzy.
+
+\subsection{Podział danych}
+
+Dane podzielono \textbf{według osób} (nie zdjęć), co jest kluczowe dla uniknięcia wycieku danych między zbiorami:
+
+\begin{table}[H]
+\centering
+\caption{Podział zbioru danych}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Zbiór} & \textbf{Liczba zdjęć} & \textbf{Liczba osób} \\
+\midrule
+Treningowy & 7486 & 1344 \\
+Walidacyjny & 698 & 168 \\
+Testowy & 980 & 168 \\
+\midrule
+\textbf{Razem} & \textbf{9164} & \textbf{1680} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Augmentacja danych}
+
+Podczas treningu stosowano następujące transformacje augmentacji:
+\begin{itemize}
+    \item Losowe odbicie horyzontalne (p=0.5)
+    \item Losowe zmiany jasności, kontrastu, saturacji i barwy
+    \item Normalizacja do średniej i odchylenia standardowego ImageNet
+    \item Przeskalowanie do rozmiaru $224 \times 224$ pikseli
+\end{itemize}
+
+%==============================================================================
+\section{Architektury modeli}
+%==============================================================================
+
+\subsection{ResNet18}
+
+Model oparty na architekturze ResNet18 jako backbone:
+\begin{itemize}
+    \item Backbone pretrenowany na ImageNet (tylko cechy ogólne, nie twarze)
+    \item Usunięta warstwa klasyfikacyjna, zastąpiona warstwą embedding
+    \item Rozmiar embeddingu: 128 wymiarów
+    \item Normalizacja L2 na wyjściu
+    \item Liczba parametrów: $\sim$11.2M
+\end{itemize}
+
+\subsection{FaceNet (Inception-ResNet-v1)}
+
+Architektura Inception-ResNet-v1, zaprojektowana specjalnie do rozpoznawania twarzy:
+\begin{itemize}
+    \item Głęboka sieć z blokami Inception i połączeniami rezydualnymi
+    \item Bloki: Stem $\rightarrow$ 5$\times$Block35 $\rightarrow$ Mixed\_6a $\rightarrow$ 10$\times$Block17 $\rightarrow$ Mixed\_7a $\rightarrow$ 5$\times$Block8
+    \item Rozmiar embeddingu: 512 wymiarów (w wersji pretrenowanej), 128 w naszej implementacji
+    \item Normalizacja L2 na wyjściu
+    \item Liczba parametrów: $\sim$23.5M
+\end{itemize}
+
+\subsection{FaceNet z pretrainingiem}
+
+Ta sama architektura Inception-ResNet-v1, ale z wagami pretrenowanymi na zbiorze VGGFace2:
+\begin{itemize}
+    \item VGGFace2 zawiera $\sim$3.31M zdjęć, $\sim$9131 osób
+    \item Wagi pobrane z biblioteki \texttt{facenet-pytorch}
+    \item Fine-tuning całej sieci na zbiorze LFW
+\end{itemize}
+
+%==============================================================================
+\section{Konfiguracja eksperymentów}
+%==============================================================================
+
+\subsection{Wspólne ustawienia}
+
+Wszystkie eksperymenty przeprowadzono z następującymi wspólnymi ustawieniami:
+
+\begin{table}[H]
+\centering
+\caption{Wspólne hiperparametry}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parametr} & \textbf{Wartość} \\
+\midrule
+Funkcja straty & Triplet Loss \\
+Margines (margin) & 0.2 \\
+Metryka odległości & Euklidesowa \\
+Optymalizator & Adam \\
+Weight decay & 0.0001 \\
+Rozmiar obrazu & $224 \times 224$ \\
+Augmentacja & Tak \\
+Early stopping & Tak \\
+GPU & NVIDIA GeForce RTX 2080 Ti \\
+Seed & 42 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Hiperparametry poszczególnych modeli}
+
+\begin{table}[H]
+\centering
+\caption{Hiperparametry specyficzne dla każdego modelu}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Parametr} & \textbf{ResNet18} & \textbf{FaceNet (scratch)} & \textbf{FaceNet (pretrained)} \\
+\midrule
+Rozmiar embeddingu & 128 & 512 & 512 \\
+Batch size & 32 & 16 & 32 \\
+Maks. liczba epok & 50 & 80 & 20 \\
+Learning rate & 0.001 & 0.0005 & 0.0001 \\
+LR scheduler & Cosine & Cosine & Plateau \\
+LR min & $10^{-6}$ & $10^{-6}$ & $10^{-7}$ \\
+Early stopping patience & 15 & 20 & 8 \\
+Early stopping min delta & 0.001 & 0.001 & 0.0005 \\
+Pretrained backbone & ImageNet & Nie & VGGFace2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Uzasadnienie wyboru hiperparametrów}
+
+\textbf{ResNet18:}
+\begin{itemize}
+    \item Wyższy learning rate (0.001) --- mniejsza sieć, szybsza konwergencja
+    \item Cosine annealing scheduler --- płynne zmniejszanie LR
+    \item Batch size 32 --- kompromis między stabilnością a pamięcią GPU
+\end{itemize}
+
+\textbf{FaceNet od podstaw:}
+\begin{itemize}
+    \item Niższy learning rate (0.0005) --- głębsza sieć wymaga ostrożniejszego treningu
+    \item Mniejszy batch size (16) --- ograniczenia pamięci GPU dla większej sieci
+    \item Więcej epok (80) i większa cierpliwość early stopping (20) --- więcej czasu na naukę
+\end{itemize}
+
+\textbf{FaceNet z pretrainingiem:}
+\begin{itemize}
+    \item Najniższy learning rate (0.0001) --- fine-tuning nie wymaga dużych zmian wag
+    \item Plateau scheduler --- adaptacyjne zmniejszanie LR gdy strata przestaje spadać
+    \item Mniej epok (20) i mniejsza cierpliwość (8) --- szybsza konwergencja dzięki pretreningowi
+\end{itemize}
+
+%==============================================================================
+\section{Wyniki eksperymentów}
+%==============================================================================
+
+\subsection{Przebieg treningu}
+
+\begin{table}[H]
+\centering
+\caption{Podsumowanie treningu}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metryka} & \textbf{ResNet18} & \textbf{FaceNet (scratch)} & \textbf{FaceNet (pretrained)} \\
+\midrule
+Liczba epok do najlepszego modelu & 24 & 27 & 11 \\
+Najlepsza walidacyjna strata & 0.0469 & 0.2168 & 0.0046 \\
+Końcowa epoka (early stopping) & 39 & 47 & 14 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Metryki triplet loss na zbiorze testowym}
+
+\begin{table}[H]
+\centering
+\caption{Metryki triplet loss}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metryka} & \textbf{ResNet18} & \textbf{FaceNet (scratch)} & \textbf{FaceNet (pretrained)} \\
+\midrule
+Test Loss & 0.0725 & 0.2667 & \textbf{0.0063} \\
+$d(anchor, positive)$ & 0.7578 & 0.9615 & \textbf{0.6576} \\
+$d(anchor, negative)$ & 1.3262 & 1.1436 & \textbf{1.4016} \\
+Separacja (różnica) & 0.5684 & 0.1821 & \textbf{0.7440} \\
+Violation \% & 25.00\% & 53.65\% & \textbf{4.69\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Violation \%} oznacza procent tripletów, dla których $d(anchor, positive) > d(anchor, negative) - margin$, czyli tripletów naruszających warunek triplet loss.
+
+\subsection{Metryki weryfikacji twarzy}
+
+Metryki weryfikacji obliczono przy \textbf{optymalnym progu} (maksymalizującym F1-score), a nie przy arbitralnym progu.
+
+\begin{table}[H]
+\centering
+\caption{Metryki weryfikacji twarzy na zbiorze testowym}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metryka} & \textbf{ResNet18} & \textbf{FaceNet (scratch)} & \textbf{FaceNet (pretrained)} \\
+\midrule
+Optymalny próg & 1.1672 & 1.8837 & 1.0229 \\
+\textbf{Accuracy} & 79.60\% & 47.20\% & \textbf{91.30\%} \\
+\textbf{Precision} & 73.84\% & 47.08\% & \textbf{88.38\%} \\
+\textbf{Recall} & 87.66\% & 99.57\% & \textbf{93.83\%} \\
+\textbf{F1-Score} & 80.16\% & 63.93\% & \textbf{91.02\%} \\
+\textbf{ROC-AUC} & 88.25\% & 57.50\% & \textbf{97.20\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Statystyki odległości}
+
+\begin{table}[H]
+\centering
+\caption{Statystyki odległości między embeddingami}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Statystyka} & \textbf{ResNet18} & \textbf{FaceNet (scratch)} & \textbf{FaceNet (pretrained)} \\
+\midrule
+Średnia dist. (ta sama osoba) & $0.7500 \pm 0.3292$ & $0.9820 \pm 0.4874$ & $\mathbf{0.6521 \pm 0.2125}$ \\
+Średnia dist. (różne osoby) & $1.3538 \pm 0.3567$ & $1.1052 \pm 0.4515$ & $\mathbf{1.3717 \pm 0.2603}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Macierz pomyłek}
+
+\begin{table}[H]
+\centering
+\caption{Macierze pomyłek dla poszczególnych modeli (przy optymalnym progu)}
+\begin{tabular}{l|cc|cc|cc}
+\toprule
+& \multicolumn{2}{c|}{\textbf{ResNet18}} & \multicolumn{2}{c|}{\textbf{FaceNet (scratch)}} & \multicolumn{2}{c}{\textbf{FaceNet (pretrained)}} \\
+& Pred: Diff & Pred: Same & Pred: Diff & Pred: Same & Pred: Diff & Pred: Same \\
+\midrule
+Actual: Different & 384 & 146 & 4 & 526 & \textbf{472} & 58 \\
+Actual: Same & 58 & 412 & 2 & 468 & 29 & \textbf{441} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Analiza wyników}
+%==============================================================================
+
+\subsection{Dlaczego pretrenowany FaceNet wygrał?}
+
+\begin{enumerate}
+    \item \textbf{Transfer learning działa} --- model pretrenowany na VGGFace2 ($\sim$3.3M zdjęć) już nauczył się wydobywać cechy charakterystyczne dla twarzy. Fine-tuning na LFW to tylko dostrajanie.
+    
+    \item \textbf{Separacja odległości} --- kluczowa różnica:
+    \begin{itemize}
+        \item Pretrained: gap = 0.74 (wyraźna separacja)
+        \item ResNet18: gap = 0.57 (umiarkowana separacja)
+        \item Scratch: gap = 0.18 (rozkłady się nakładają!)
+    \end{itemize}
+    
+    \item \textbf{Niska wariancja} --- pretrenowany model ma najniższe odchylenia standardowe odległości, co oznacza bardziej konsystentne embeddingi.
+\end{enumerate}
+
+\subsection{Dlaczego FaceNet od podstaw zawiódł?}
+
+\begin{enumerate}
+    \item \textbf{Za mało danych} --- Inception-ResNet-v1 to głęboka sieć z 23.5M parametrów. LFW z 7.5k zdjęciami to zdecydowanie za mało do nauczenia takiej sieci od zera.
+    
+    \item \textbf{Nakładające się rozkłady} --- średnia odległość dla tej samej osoby (0.98) jest bardzo bliska średniej dla różnych osób (1.11). Model praktycznie nie rozróżnia twarzy.
+    
+    \item \textbf{Wysoki violation rate} --- 53.65\% tripletów narusza warunek triplet loss, co oznacza, że model losowo zgaduje.
+\end{enumerate}
+
+\subsection{ResNet18 --- solidna alternatywa}
+
+ResNet18 osiągnął przyzwoite wyniki (80\% F1) mimo prostszej architektury:
+\begin{itemize}
+    \item Mniejsza sieć (11.2M vs 23.5M parametrów) lepiej generalizuje na małych zbiorach
+    \item Pretrenowanie na ImageNet (nawet bez twarzy) daje dobre inicjalne cechy
+    \item Dobry kompromis między wydajnością a wymaganiami danych
+\end{itemize}
+
+%==============================================================================
+\section{Wnioski}
+%==============================================================================
+
+\subsection{Główne obserwacje}
+
+\begin{enumerate}
+    \item \textbf{Transfer learning jest kluczowy} dla głębokich architektur na małych zbiorach danych. Pretrenowany FaceNet osiągnął 91.3\% dokładności vs 47.2\% dla wersji trenowanej od zera.
+    
+    \item \textbf{Złożoność architektury musi odpowiadać ilości danych}. ResNet18 (11.2M parametrów) radzi sobie lepiej na małym zbiorze niż Inception-ResNet-v1 (23.5M) bez pretrainingu.
+    
+    \item \textbf{Separacja odległości} jest kluczową metryką jakości modelu. Model z gap $<$ 0.3 jest praktycznie bezużyteczny.
+    
+    \item \textbf{Optymalny próg} powinien być wyznaczany na zbiorze walidacyjnym, a nie ustalany arbitralnie. Różnica w wynikach może być znacząca.
+\end{enumerate}
+
+\subsection{Rekomendacje praktyczne}
+
+\begin{itemize}
+    \item Dla małych zbiorów danych ($<$10k zdjęć): używać pretrenowanych modeli lub prostszych architektur
+    \item Zawsze sprawdzać separację odległości (gap między średnimi) jako wczesny wskaźnik jakości
+    \item Stosować early stopping z monitorowaniem validation loss, nie accuracy
+    \item Dla fine-tuningu: niski learning rate ($10^{-4}$), mniej epok, scheduler typu Plateau
+\end{itemize}
+
+\subsection{Możliwe rozszerzenia}
+
+\begin{itemize}
+    \item Eksperymenty z hard triplet mining (wybieranie najtrudniejszych tripletów)
+    \item Porównanie z innymi funkcjami straty (ArcFace, CosFace)
+    \item Testy na większych zbiorach (MS-Celeb-1M, WebFace)
+    \item Analiza t-SNE embeddingów dla wizualizacji przestrzeni cech
+\end{itemize}
+
+%==============================================================================
+\section{Środowisko eksperymentalne}
+%==============================================================================
+
+\begin{itemize}
+    \item \textbf{GPU}: NVIDIA GeForce RTX 2080 Ti (11 GB VRAM)
+    \item \textbf{Framework}: PyTorch 2.x
+    \item \textbf{Python}: 3.10+
+    \item \textbf{Biblioteki}: torchvision, scikit-learn, albumentations, facenet-pytorch
+\end{itemize}
+
+%==============================================================================
+% Bibliografia (opcjonalna)
+%==============================================================================
+
+\begin{thebibliography}{9}
+
+\bibitem{schroff2015}
+Schroff, F., Kalenichenko, D., \& Philbin, J. (2015).
+\textit{FaceNet: A Unified Embedding for Face Recognition and Clustering}.
+CVPR 2015.
+
+\bibitem{lfw}
+Huang, G. B., et al. (2007).
+\textit{Labeled Faces in the Wild: A Database for Studying Face Recognition in Unconstrained Environments}.
+University of Massachusetts, Amherst.
+
+\bibitem{vggface2}
+Cao, Q., et al. (2018).
+\textit{VGGFace2: A dataset for recognising faces across pose and age}.
+IEEE FG 2018.
+
+\bibitem{resnet}
+He, K., et al. (2016).
+\textit{Deep Residual Learning for Image Recognition}.
+CVPR 2016.
+
+\end{thebibliography}
+
+\end{document}

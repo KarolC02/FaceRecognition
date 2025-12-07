@@ -39,7 +39,7 @@ def download_lfw_dataset(data_dir="data"):
     try:
         # Download latest version using kagglehub
         path = kagglehub.dataset_download("jessicali9530/lfw-dataset")
-        print(f"✓ Dataset downloaded to: {path}")
+        print(f"Dataset downloaded to: {path}")
         
         # The dataset might be in a subdirectory, let's find the actual data
         dataset_path = Path(path)
@@ -73,7 +73,7 @@ def download_lfw_dataset(data_dir="data"):
         if actual_dataset_path is None:
             # If we can't find the structure, use the root
             actual_dataset_path = dataset_path
-            print(f"⚠ Could not determine exact dataset structure, using: {actual_dataset_path}")
+            print(f"Warning: Could not determine exact dataset structure, using: {actual_dataset_path}")
         
         # Create symlink or copy to our data directory
         target_path = lfw_path / "lfw-dataset"
@@ -83,19 +83,19 @@ def download_lfw_dataset(data_dir="data"):
             # Create a symlink (or copy if symlink fails)
             try:
                 target_path.symlink_to(actual_dataset_path)
-                print(f"✓ Created symlink: {target_path} -> {actual_dataset_path}")
+                print(f"Created symlink: {target_path} -> {actual_dataset_path}")
             except OSError:
                 # If symlink fails (e.g., on Windows or cross-filesystem), copy
                 print(f"Copying dataset to {target_path}...")
                 shutil.copytree(actual_dataset_path, target_path)
-                print(f"✓ Copied dataset to: {target_path}")
+                print(f"Copied dataset to: {target_path}")
         
-        print(f"\n✓ LFW dataset ready!")
+        print(f"\nLFW dataset ready!")
         print(f"  Location: {target_path}")
         return str(target_path)
         
     except Exception as e:
-        print(f"\n✗ Error downloading dataset: {e}")
+        print(f"\nError downloading dataset: {e}")
         print("\nMake sure you have kagglehub installed and configured:")
         print("  pip install kagglehub")
         raise
@@ -113,7 +113,7 @@ def main():
     args = parser.parse_args()
     
     dataset_path = download_lfw_dataset(args.data_dir)
-    print(f"\n✓ Dataset downloaded successfully!")
+    print(f"\nDataset downloaded successfully!")
     print(f"  Location: {dataset_path}")
     print(f"\nNext step: Run explore_lfw.py to verify the dataset format:")
     print(f"  python scripts/explore_lfw.py --dataset-path {dataset_path} --visualize")

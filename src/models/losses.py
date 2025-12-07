@@ -143,10 +143,20 @@ class HardTripletLoss(nn.Module):
         else:  # "all"
             mask = torch.ones_like(d_ap, dtype=torch.bool)
         
+        # Always compute base metrics on full batch for consistent logging
+        base_metrics = {
+            'd_ap_mean': d_ap.mean().item(),
+            'd_an_mean': d_an.mean().item(),
+            'margin_violations': (d_ap > d_an - self.margin).float().mean().item(),
+        }
+        
         if mask.sum() == 0:
-            # No hard triplets found, return zero loss
+            # No hard triplets found, return zero loss but include all metrics
             return torch.tensor(0.0, device=anchor.device, requires_grad=True), {
                 'loss': 0.0,
+                'd_ap_mean': base_metrics['d_ap_mean'],
+                'd_an_mean': base_metrics['d_an_mean'],
+                'margin_violations': base_metrics['margin_violations'],
                 'hard_triplets': 0,
                 'total_triplets': len(d_ap),
                 'hard_ratio': 0.0
@@ -206,5 +216,5 @@ if __name__ == "__main__":
     print(f"  Hard triplets: {metrics_hard['hard_triplets']}/{metrics_hard['total_triplets']}")
     print(f"  Hard ratio: {metrics_hard['hard_ratio']:.2%}")
     
-    print("\n✓ Triplet loss tests passed!")
+    print("\nTriplet loss tests passed!")
 

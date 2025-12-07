@@ -58,7 +58,7 @@ class LFWDataset(Dataset):
         # Split dataset
         self.samples = self._split_dataset(self.samples, train_ratio, val_ratio, seed)
         
-        print(f"✓ Loaded {len(self.samples)} samples for {split} split")
+        print(f"Loaded {len(self.samples)} samples for {split} split")
         print(f"  Unique people: {len(set(label for _, label in self.samples))}")
     
     def _load_samples(self) -> List[Tuple[str, int]]:
